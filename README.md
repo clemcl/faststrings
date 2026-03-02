@@ -13,4 +13,4 @@ faster than fgets and similar routines.
 
 These routines stop the accidental overwriting of storage or buffer overruns in C and C++.
 
-Additionally, power ussaage is reduced.
+Additionally, power usage is reduced.
