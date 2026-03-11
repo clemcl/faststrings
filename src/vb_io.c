@@ -1,7 +1,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include "vb_internal.h"
+#include "vb_file.h"
 
 /* -------------------------------------------------- */
 /* Length field helpers (little-endian, defined)      */
@@ -157,4 +157,81 @@ VB_Close(vb_handle_t *vb)
     free(vb->block_buf);
     free(vb);
     return 0;
+}
+
+/*static*/ vb_handle_t *vb_alloc(void)
+{
+    vb_handle_t *vb = (vb_handle_t *) calloc(1, sizeof(*vb));
+    return vb;
+}
+
+vb_handle_t *VB_OpenWrite(const char *path, uint32_t block_size, vb_lenfmt_t lenfmt)
+{
+    vb_handle_t *vb = vb_alloc();
+    if (!vb) return NULL;
+
+    vb->fp = fopen(path, "wb");
+    if (!vb->fp) {
+        free(vb);
+        return NULL;
+    }
+
+    vb->mode = VB_MODE_WRITE;
+    vb->lenfmt = lenfmt;
+    vb->block_size = block_size;
+
+    vb_file_header_t hdr = {
+        .magic = VB_FILE_MAGIC,
+        .version = 1,
+        .header_size = sizeof(hdr),
+        .block_size = block_size,
+        .lenfmt = lenfmt,
+        .flags = 0,
+        .reserved1 = 0,
+        .reserved2 = 0
+    };
+
+    fwrite(&hdr, sizeof hdr, 1, vb->fp);
+
+    if (block_size) {
+        vb->block_buf =  ( uint8_t * ) malloc(block_size);
+        vb->block_used = 0;
+    }
+
+    return vb;
+}
+
+vb_handle_t *VB_OpenRead(const char *path)
+{
+    vb_file_header_t hdr;
+    vb_handle_t *vb = vb_alloc();
+    if (!vb) return NULL;
+
+    vb->fp = fopen(path, "rb");
+    if (!vb->fp) {
+        free(vb);
+        return NULL;
+    }
+
+    fread(&hdr, sizeof hdr, 1, vb->fp);
+
+    if (hdr.magic != VB_FILE_MAGIC || hdr.version != 1) {
+        fclose(vb->fp);
+        free(vb);
+        return NULL;
+    }
+
+    vb->mode = VB_MODE_READ;
+    vb->lenfmt = (vb_lenfmt_t)hdr.lenfmt;
+    vb->block_size = hdr.block_size;
+
+    fread(&vb->block_used, 4, 1, vb->fp);   /* Input Blocksize */
+
+    if (vb->block_size) {
+        vb->block_buf = ( uint8_t * ) malloc(vb->block_size);
+        vb->block_used = fread(vb->block_buf, 1, vb->block_used, vb->fp);
+        vb->block_pos = 0;
+    }
+
+    return vb;
 }
