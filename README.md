@@ -8,7 +8,7 @@ unnecessary work.
 Repeated testing indicatess that the CPU reduction or speed increases are approximately 4 times
 over the standard strlen and strcpy C functions.
 
-And the Record Input/Output routines aare similar to IBM ZOS, and offer speeds about 4 times
+And the Record Input/Output routines are similar to IBM ZOS, and offer speeds about 4 times
 faster than fgets and similar routines.
 
 These routines stop the accidental overwriting of storage or buffer overruns in C and C++.
